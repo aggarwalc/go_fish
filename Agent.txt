@@ -1,0 +1,11 @@
+The performance measure that defines the criterion for success.
+POINTS
+
+The agent's prior knowledge of the environment.
+COMPLETED BOOKS | ICOMPLETE BOOKS | SIZE OF DECK | # OF CARDS HELD BY USER
+
+The actions that the agent can perform.
+WHAT CARDS CAN THE AGENT ASK FOR
+
+What the agent has perceived to-date (the percept sequence)
+PREVIOUS ACTIONS FROM USER
