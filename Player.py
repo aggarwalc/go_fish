@@ -84,9 +84,9 @@ class User(Player):
 
     Methods
     ----------
-    ask_user(user:list, comp:list, deck:object):
+    ask_user(comp:list, deck:object):
         Prompts the user to request a card
-    display(user:list, comp:list):
+    display(comp:list):
         Displays the user's hand and information about the computer's hand
     """
 
@@ -94,14 +94,12 @@ class User(Player):
     hand = []
 
     # Methods
-    def ask_user(self, user: list, comp: list, deck: object):
+    def ask_user(self, comp: list, deck: object):
         """
         Asks the user to request a card
 
         Parameters
         ----------
-            user : list
-                The user's hand
             comp : list
                 The computer's hand
             deck : object
@@ -114,30 +112,28 @@ class User(Player):
 
             print("What card would you like? ")
 
-            resp = input("Enter one of your cards: " + str(set(user)) + ": ")
+            resp = input("Enter one of your cards: " + str(set(self.hand)) + ": ")
             resp = resp.upper() #addition to check lower cases as well
 
-            if resp in user:
+            if resp in self.hand:
                 invalid = False
             else:
                 print("Invalid response")
 
         if resp in comp:
             print("Computer has card")
-            self.give_cards(comp, user, resp)
+            self.give_cards(comp, self.hand, resp)
         else:
             print("Computer does not have card")
-            card = self.go_fish(user, deck)
+            card = self.go_fish(self.hand, deck)
             print("Now adding " + card + " to you hand.")
 
-    def display(self, user: list, comp: list):
+    def display(self, comp: list):
         """
         Displays the contents of the hands
 
         Parameters
         ----------
-            user : list
-                The user's hand
             comp : list
                 The computers's hand
         """
@@ -146,8 +142,8 @@ class User(Player):
         print("Your cards are: ")
 
         card_counts = []
-        for card in set(user):
-            card_counts.append((user.count(card), card))
+        for card in set(self.hand):
+            card_counts.append((self.hand.count(card), card))
         card_counts.sort(reverse=True)
         for pair in card_counts:
             print(pair[1], ":", pair[0])
@@ -163,7 +159,7 @@ class Comp(Player):
 
     Methods
     ----------
-    ask_comp(comp:list, user:list, deck:object):
+    ask_comp(user:list, deck:object):
         Computer requests a card from the user
     """
 
@@ -171,14 +167,12 @@ class Comp(Player):
     hand = []
 
     # Methods
-    def ask_comp(self, comp: list, user: list, deck: object):
+    def ask_comp(self, user: list, deck: object):
         """
         Computer requests a card from the user
 
         Parameters
         ----------
-            comp : list
-                The computer's hand
             user : list
                 The user's hand
             deck : object
@@ -186,8 +180,8 @@ class Comp(Player):
         """
 
         potential_cards = []
-        for card in set(comp):
-            count = comp.count(card)
+        for card in set(self.hand):
+            count = self.hand.count(card)
             if count != 4:
                 potential_cards.append(card)
 
@@ -196,7 +190,7 @@ class Comp(Player):
             resp = potential_cards[index]
         else:
             # the computer has only books!
-            resp = comp[randint(0, len(comp) - 1)]
+            resp = self.hand[randint(0, len(self.hand) - 1)]
 
 
         print("The computer is requesting", resp)
@@ -204,8 +198,8 @@ class Comp(Player):
 
         if resp in user:
             print("You have this card")
-            self.give_cards(user, comp, resp)
+            self.give_cards(user, self.hand, resp)
         else:
             print("You do not have card")
-            self.go_fish(comp, deck)
+            self.go_fish(self.hand, deck)
             print("The computer has drawn a card.")

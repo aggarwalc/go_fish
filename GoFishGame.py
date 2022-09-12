@@ -111,13 +111,13 @@ class GoFishGame:
         self.gamedeck.deal_cards(self.user.hand, self.comp.hand)
         # main gameplay
         while(not self.is_game_over()):
-            self.user.ask_user(self.user.hand, self.comp.hand, self.gamedeck)
+            self.user.ask_user(self.comp.hand, self.gamedeck)
             if self.is_game_over():
                 break
             input("Press enter to continue")
-            self.comp.ask_comp(self.comp.hand, self.user.hand, self.gamedeck)
+            self.comp.ask_comp(self.user.hand, self.gamedeck)
             input("Press enter to continue")
-            self.user.display(self.user.hand, self.comp.hand)
+            self.user.display(self.comp.hand)
         # finish game, calculate score
         print("The game is over!")
         self.score.calc(self.comp.hand, self.user.hand)
