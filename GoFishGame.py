@@ -3,6 +3,7 @@ from Score import *
 from Player import *
 from Deck import *
 
+
 class GoFishGame:
     """
     A class for the Go Fish card game
@@ -91,6 +92,10 @@ class GoFishGame:
                 self.user.hand.clear()
                 self.comp.hand.clear()
 
+                # reset precept_sequence and comp_history
+                self.comp.percept_sequence.clear()
+                self.comp_history = [None, None, None]
+
                 for card in self.gamedeck.cards:
                     for i in range(4):
                         self.gamedeck.deck.append(card)
@@ -110,11 +115,16 @@ class GoFishGame:
         # deals cards to user and computer
         self.gamedeck.deal_cards(self.user.hand, self.comp.hand)
         # main gameplay
-        while(not self.is_game_over()):
-            self.user.ask_user(self.comp.hand, self.gamedeck)
+        while (not self.is_game_over()):
+            req = self.user.ask_user(self.comp.hand, self.gamedeck)
+            # add request to computer's percept sequence
+            self.comp.percept_sequence.append(req)
             if self.is_game_over():
                 break
             input("Press enter to continue")
+            # construct coputer's game knowledge
+            self.comp.get_game_knowledge(
+                self.user.hand, self.gamedeck.deck, self.score.points_dict)
             self.comp.ask_comp(self.user.hand, self.gamedeck)
             input("Press enter to continue")
             self.user.display(self.comp.hand)
@@ -124,6 +134,7 @@ class GoFishGame:
         if self.play_again():
             new_game = GoFishGame()
             new_game.play()
+
 
 # main
 if __name__ == "__main__":

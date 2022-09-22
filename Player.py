@@ -1,6 +1,7 @@
 from random import randint
 from Deck import *
 
+
 class Player:
     """
     A parent class for players of the Go Fish Game
@@ -22,7 +23,7 @@ class Player:
     """
 
     # Methods
-    def __init__(self): # not necessarily needed
+    def __init__(self):  # not necessarily needed
         """
         Constructs the Player object
         """
@@ -94,7 +95,7 @@ class User(Player):
     hand = []
 
     # Methods
-    def ask_user(self, comp: list, deck: object):
+    def ask_user(self, comp: list, deck: object) -> str:
         """
         Asks the user to request a card
 
@@ -108,12 +109,13 @@ class User(Player):
 
         invalid = True
 
-        while(invalid):
+        while (invalid):
 
             print("What card would you like? ")
 
-            resp = input("Enter one of your cards: " + str(set(self.hand)) + ": ")
-            resp = resp.upper() #addition to check lower cases as well
+            resp = input("Enter one of your cards: " +
+                         str(set(self.hand)) + ": ")
+            resp = resp.upper()  # addition to check lower cases as well
 
             if resp in self.hand:
                 invalid = False
@@ -127,6 +129,9 @@ class User(Player):
             print("Computer does not have card")
             card = self.go_fish(self.hand, deck)
             print("Now adding " + card + " to you hand.")
+
+        # return the requested card so that the computer can make use of this info
+        return resp
 
     def display(self, comp: list):
         """
@@ -148,6 +153,7 @@ class User(Player):
         for pair in card_counts:
             print(pair[1], ":", pair[0])
 
+
 class Comp(Player):
     """
     A child class for the computer player
@@ -156,18 +162,37 @@ class Comp(Player):
     ----------
     hand : list
         The computer's hand
+    percept_sequence : list
+        The past moves of the user
+    comp_history : list
+        The past 3 moves of the computer
+    game_knowledge : dictionary
+        Knowledge including deck length and user hand length
 
     Methods
     ----------
     ask_comp(user:list, deck:object):
         Computer requests a card from the user
+    get_game_knowledge(self, user: list, deck: list, points: dict):
+        Constructs the computer's game knowledge
+    check_precept(self, cards: list) -> list:
+        Filters the card list for cards that are in the precept sequence
+    max_points(self, cards: list) -> str:
+        Finds the card with the highest point value
     """
 
     # Attributes
     hand = []
 
-    # Methods
-    def ask_comp(self, user: list, deck: object):
+    # past moves from the user
+    percept_sequence = []
+    # past (3) moves from the computer
+    comp_history = [None, None, None]
+    # computer's game knowledge
+    # will contain (user hand length, deck length, percept, comp_history, scoring_guide)
+    game_knowledge = {}
+
+    def ask_comp(self, user: list, gamedeck: object):
         """
         Computer requests a card from the user
 
@@ -175,23 +200,47 @@ class Comp(Player):
         ----------
             user : list
                 The user's hand
-            deck : object
+            gamedeck : object
                 The gamedeck in use
         """
 
-        potential_cards = []
-        for card in set(self.hand):
-            count = self.hand.count(card)
-            if count != 4:
-                potential_cards.append(card)
+        # possible moves - actions
+        # fundamentally, the bot can ask for any card as long as it exists in
+        # the computer's hand. But we want to narrow this list down to contain the
+        # best cards to ask for.
 
-        if (len(potential_cards) > 0):
-            index = randint(0, len(potential_cards) - 1)
-            resp = potential_cards[index]
-        else:
-            # the computer has only books!
+        # card_counts contains the counts of cards that do not have full books and
+        # have not been asked for in the past three moves
+        card_counts = {card: self.hand.count(card) for card in self.hand if (
+            self.hand.count(card) != 4 and card not in self.game_knowledge['comp_history'])}
+
+        if len(card_counts) == 0:
             resp = self.hand[randint(0, len(self.hand) - 1)]
+            print(resp)
+        else:
+            # BOT -
+            # Step 1: The bot will first go through the cards and prioritize the cards that
+            # have the largest count below 4
+            # Step 2: The bot will then filter this list of cards further and prioritize cards
+            # that have been asked for before by the user
+            # Step 3: Finally, If there are still multiple cards in the list, the bot will choose
+            # the one with the highest point value to maximize computer's score [performance measure]
 
+            # find the max count of cards
+            max_count = max(card_counts.values())
+
+            # add all the cards that have the max count to potential_cards list
+            potential_cards = [
+                card for card in card_counts if card_counts[card] == max_count]
+
+            # check if the cards in potential_card have been asked for before
+            # if they have, then we want to keep them in the list
+            # if they haven't remove them from the list
+            potential_cards = self.check_precept(potential_cards)
+
+            # if there are still multiple cards in potential_cards
+            # pick the one with the highest point value
+            resp = self.max_points(potential_cards)
 
         print("The computer is requesting", resp)
         input("Press enter to continue.")
@@ -201,5 +250,71 @@ class Comp(Player):
             self.give_cards(user, self.hand, resp)
         else:
             print("You do not have card")
-            self.go_fish(self.hand, deck)
+            self.go_fish(self.hand, gamedeck)
             print("The computer has drawn a card.")
+
+        # alter comp_history so that it only has the three past moves at all times
+        self.comp_history.pop(0)
+        self.comp_history.append(resp)
+
+    def get_game_knowledge(self, user: list, deck: list, points: dict):
+        """
+        Constructs the computer's game knowledge
+
+        Parameters
+        ----------
+            user : list
+                The user's hand
+            deck : list
+                The deck in use
+            points : dict
+                Point values of individual cards
+        """
+
+        # add information to game knowledge dictionary
+        self.game_knowledge['user_hand_len'] = len(user)
+        self.game_knowledge['deck_len'] = len(deck)
+        self.game_knowledge['percept'] = self.percept_sequence
+        self.game_knowledge['comp_history'] = self.comp_history
+        self.game_knowledge['scoring_guide'] = points
+
+    def check_precept(self, cards: list) -> list:
+        """
+        Checks if any of the cards have previously been asked for by the user
+
+        Parameters
+        ----------
+            cards : list
+                A list of possible cards that the computer can ask for
+        """
+        filtered_cards = []
+        for card in cards:
+            # check if card is in the precept sequence
+            if card in self.game_knowledge['percept']:
+                filtered_cards.append(card)
+
+        # if none of the cards were asked for before, return the original list
+        # otherwise, return the filtered list
+        if len(filtered_cards) == 0:
+            return cards
+        else:
+            return filtered_cards
+
+    def max_points(self, cards: list) -> str:
+        """
+        Finds the card with the highest point value
+
+        Parameters
+        ----------
+            cards : list
+                A list of possible cards that the computer can ask for
+        """
+        max_point_card = None
+        # compare point values of cards based on the scoring guide
+        for card in cards:
+            if max_point_card == None:
+                max_point_card = card
+            elif self.game_knowledge['scoring_guide'][card] > self.game_knowledge['scoring_guide'][max_point_card]:
+                max_point_card = card
+
+        return max_point_card
